@@ -213,13 +213,7 @@ class PMGNodeSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
         description: PMGNodeSensorDescription,
     ) -> None:
         super().__init__(coordinator)
-        self.entity_description = SensorEntityDescription(
-            key=description.key,
-            name=description.name,
-            native_unit_of_measurement=description.native_unit_of_measurement,
-            device_class=description.device_class,
-            state_class=description.state_class,
-        )
+        self.entity_description = description
         self._node_name = node_name
         self._attr_unique_id = f"{entry.entry_id}_{node_name}_{description.key}"
         self._attr_attribution = ATTRIBUTION
