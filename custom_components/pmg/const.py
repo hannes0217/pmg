@@ -15,6 +15,3 @@ DEFAULT_STATS_DAYS = 1
 ATTRIBUTION = "Data provided by Proxmox Mail Gateway"
 
 COOKIE_NAME = "PMGAuthCookie"
-
-SERVICE_REBOOT = "reboot"
-SERVICE_SHUTDOWN = "shutdown"

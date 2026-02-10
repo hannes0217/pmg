@@ -180,7 +180,6 @@ STATS_SENSORS: tuple[PMGStatsSensorDescription, ...] = (
 )
 
 
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -192,8 +191,8 @@ async def async_setup_entry(
 
     nodes = coordinator.data.get("nodes", {}) if coordinator.data else {}
     for node_name in nodes:
-    for description in NODE_SENSORS:
-        entities.append(PMGNodeSensor(coordinator, entry, node_name, description))
+        for description in NODE_SENSORS:
+            entities.append(PMGNodeSensor(coordinator, entry, node_name, description))
 
     for description in STATS_SENSORS:
         entities.append(PMGMailStatsSensor(coordinator, entry, description))
@@ -279,8 +278,6 @@ class PMGMailStatsSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEnti
         if self._value_fn is not None:
             return self._value_fn(value)
         return value
-
-
 
 
 class PMGVersionSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
