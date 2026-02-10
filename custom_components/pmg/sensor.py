@@ -10,11 +10,17 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation
+from homeassistant.const import (
+    EntityCategory,
+    PERCENTAGE,
+    UnitOfInformation,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import CONF_HOST
 
 from . import PMGDataUpdateCoordinator
@@ -24,12 +30,17 @@ from .const import ATTRIBUTION, DOMAIN
 @dataclass(frozen=True, kw_only=True)
 class PMGNodeSensorDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], Any] | None = None
+    device_class: SensorDeviceClass | None = None
+    state_class: SensorStateClass | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
 class PMGStatsSensorDescription(SensorEntityDescription):
     key: str
     native_unit_of_measurement: str | None = None
+    value_fn: Callable[[Any], Any] | None = None
+    device_class: SensorDeviceClass | None = None
+    state_class: SensorStateClass | None = None
 
 
 NODE_SENSORS: tuple[PMGNodeSensorDescription, ...] = (
@@ -44,69 +55,128 @@ NODE_SENSORS: tuple[PMGNodeSensorDescription, ...] = (
     PMGNodeSensorDescription(
         key="loadavg_1m",
         name="Load Average (1m)",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: (data.get("loadavg") or [None])[0],
     ),
     PMGNodeSensorDescription(
         key="memory_used",
         name="Memory Used",
         native_unit_of_measurement=UnitOfInformation.BYTES,
-        value_fn=lambda data: data.get("mem"),
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("mem")
+        or (data.get("memory") or {}).get("used")
+        or (data.get("memory") or {}).get("usage"),
     ),
     PMGNodeSensorDescription(
         key="memory_total",
         name="Memory Total",
         native_unit_of_measurement=UnitOfInformation.BYTES,
-        value_fn=lambda data: data.get("maxmem"),
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("maxmem")
+        or (data.get("memory") or {}).get("total")
+        or (data.get("memory") or {}).get("size"),
     ),
     PMGNodeSensorDescription(
         key="disk_used",
         name="Disk Used",
         native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("disk") or (data.get("rootfs") or {}).get("used"),
     ),
     PMGNodeSensorDescription(
         key="disk_total",
         name="Disk Total",
         native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("maxdisk")
         or (data.get("rootfs") or {}).get("total"),
     ),
     PMGNodeSensorDescription(
         key="uptime",
         name="Uptime",
-        native_unit_of_measurement="s",
-        value_fn=lambda data: data.get("uptime"),
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: round((data.get("uptime") or 0) / 3600, 2)
+        if data.get("uptime") is not None
+        else None,
     ),
 )
 
 
 STATS_SENSORS: tuple[PMGStatsSensorDescription, ...] = (
-    PMGStatsSensorDescription(key="count", name="Mail Total"),
-    PMGStatsSensorDescription(key="count_in", name="Mail In"),
-    PMGStatsSensorDescription(key="count_out", name="Mail Out"),
-    PMGStatsSensorDescription(key="junk_in", name="Junk In"),
-    PMGStatsSensorDescription(key="junk_out", name="Junk Out"),
-    PMGStatsSensorDescription(key="spamcount_in", name="Spam In"),
-    PMGStatsSensorDescription(key="spamcount_out", name="Spam Out"),
-    PMGStatsSensorDescription(key="viruscount_in", name="Virus In"),
-    PMGStatsSensorDescription(key="viruscount_out", name="Virus Out"),
-    PMGStatsSensorDescription(key="bounces_in", name="Bounces In"),
-    PMGStatsSensorDescription(key="bounces_out", name="Bounces Out"),
+    PMGStatsSensorDescription(
+        key="count", name="Mail Total", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="count_in", name="Mail In", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="count_out", name="Mail Out", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="junk_in", name="Junk In", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="junk_out", name="Junk Out", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="spamcount_in", name="Spam In", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="spamcount_out", name="Spam Out", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="viruscount_in", name="Virus In", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="viruscount_out", name="Virus Out", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="bounces_in", name="Bounces In", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="bounces_out", name="Bounces Out", state_class=SensorStateClass.MEASUREMENT
+    ),
     PMGStatsSensorDescription(
         key="bytes_in",
         name="Bytes In",
         native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     PMGStatsSensorDescription(
         key="bytes_out",
         name="Bytes Out",
         native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    PMGStatsSensorDescription(key="avptime", name="AVP Time"),
-    PMGStatsSensorDescription(key="glcount", name="Greylist"),
-    PMGStatsSensorDescription(key="pregreet_rejects", name="Pregreet Rejects"),
-    PMGStatsSensorDescription(key="rbl_rejects", name="RBL Rejects"),
-    PMGStatsSensorDescription(key="spfcount", name="SPF Rejects"),
+    PMGStatsSensorDescription(
+        key="avptime",
+        name="AVP Time",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        device_class=SensorDeviceClass.DURATION,
+        value_fn=lambda v: round(float(v), 3) if v is not None else None,
+    ),
+    PMGStatsSensorDescription(
+        key="glcount", name="Greylist", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="pregreet_rejects",
+        name="Pregreet Rejects",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    PMGStatsSensorDescription(
+        key="rbl_rejects", name="RBL Rejects", state_class=SensorStateClass.MEASUREMENT
+    ),
+    PMGStatsSensorDescription(
+        key="spfcount", name="SPF Rejects", state_class=SensorStateClass.MEASUREMENT
+    ),
 )
 
 
@@ -143,7 +213,13 @@ class PMGNodeSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
         description: PMGNodeSensorDescription,
     ) -> None:
         super().__init__(coordinator)
-        self.entity_description = description
+        self.entity_description = SensorEntityDescription(
+            key=description.key,
+            name=description.name,
+            native_unit_of_measurement=description.native_unit_of_measurement,
+            device_class=description.device_class,
+            state_class=description.state_class,
+        )
         self._node_name = node_name
         self._attr_unique_id = f"{entry.entry_id}_{node_name}_{description.key}"
         self._attr_attribution = ATTRIBUTION
@@ -177,8 +253,11 @@ class PMGMailStatsSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEnti
             key=description.key,
             name=description.name,
             native_unit_of_measurement=description.native_unit_of_measurement,
+            device_class=description.device_class,
+            state_class=description.state_class,
         )
         self._key = description.key
+        self._value_fn = description.value_fn
         self._attr_unique_id = f"{entry.entry_id}_mail_{description.key}"
         self._attr_attribution = ATTRIBUTION
         self._attr_device_info = DeviceInfo(
@@ -191,7 +270,10 @@ class PMGMailStatsSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEnti
     @property
     def native_value(self):
         stats = (self.coordinator.data or {}).get("mail_stats") or {}
-        return _extract_stat(stats, self._key)
+        value = _extract_stat(stats, self._key)
+        if self._value_fn is not None:
+            return self._value_fn(value)
+        return value
 
 
 class PMGVersionSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):

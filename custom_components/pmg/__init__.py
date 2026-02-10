@@ -36,7 +36,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
         realm=entry.data[CONF_REALM],
-        verify_ssl=entry.options.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+        verify_ssl=entry.options.get(
+            CONF_VERIFY_SSL,
+            entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+        ),
     )
 
     coordinator = PMGDataUpdateCoordinator(hass, client, entry)

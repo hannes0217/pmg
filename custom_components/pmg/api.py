@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import asyncio
 import aiohttp
 from aiohttp import ClientError, ContentTypeError
-
-import asyncio
 
 from .const import COOKIE_NAME
 
@@ -63,7 +62,13 @@ class PMGApiClient:
         ssl_context = False if not self._verify_ssl else None
         try:
             async with self._session.post(url, data=data, ssl=ssl_context) as resp:
-                payload = await resp.json()
+                try:
+                    payload = await resp.json()
+                except ContentTypeError:
+                    text = await resp.text()
+                    raise PMGApiError(
+                        f"Login failed: unexpected response {resp.status}: {text}"
+                    ) from None
                 if resp.status != 200:
                     raise PMGApiError(f"Login failed: {resp.status} {payload}")
         except (ClientError, ContentTypeError, asyncio.TimeoutError) as err:
@@ -83,34 +88,53 @@ class PMGApiClient:
 
         url = f"{self.base_url}{path}"
         headers = {}
-        cookies = {COOKIE_NAME: self._auth.ticket} if self._auth else None
+        if self._auth and self._auth.csrf:
+            headers["CSRFPreventionToken"] = self._auth.csrf
+        if self._auth and self._auth.ticket:
+            headers["Cookie"] = f"{COOKIE_NAME}={self._auth.ticket}"
+        cookies = None
 
         ssl_context = False if not self._verify_ssl else None
         try:
             async with self._session.get(
                 url,
                 params=params,
+                headers=headers,
                 cookies=cookies,
                 ssl=ssl_context,
             ) as resp:
                 if resp.status == 401:
                     await self.async_login()
-                    cookies = {COOKIE_NAME: self._auth.ticket} if self._auth else None
+                    if self._auth and self._auth.ticket:
+                        headers["Cookie"] = f"{COOKIE_NAME}={self._auth.ticket}"
                     ssl_context = False if not self._verify_ssl else None
                     async with self._session.get(
                         url,
                         params=params,
-                        cookies=cookies,
+                        headers=headers,
+                        cookies=None,
                         ssl=ssl_context,
                     ) as retry_resp:
-                        payload = await retry_resp.json()
+                        try:
+                            payload = await retry_resp.json()
+                        except ContentTypeError:
+                            text = await retry_resp.text()
+                            raise PMGApiError(
+                                f"GET {path} failed: {retry_resp.status} {text}"
+                            ) from None
                         if retry_resp.status != 200:
                             raise PMGApiError(
                                 f"GET {path} failed: {retry_resp.status} {payload}"
                             )
                         return payload.get("data")
 
-                payload = await resp.json()
+                try:
+                    payload = await resp.json()
+                except ContentTypeError:
+                    text = await resp.text()
+                    raise PMGApiError(
+                        f"GET {path} failed: {resp.status} {text}"
+                    ) from None
                 if resp.status != 200:
                     raise PMGApiError(f"GET {path} failed: {resp.status} {payload}")
         except (ClientError, ContentTypeError, asyncio.TimeoutError) as err:

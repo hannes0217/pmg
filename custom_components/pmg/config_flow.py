@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+import asyncio
 import voluptuous as vol
+from yarl import URL
 
 from homeassistant import config_entries
 from homeassistant.const import (
@@ -13,9 +16,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
 from aiohttp import ClientError
-import asyncio
 
 from .api import PMGApiClient, PMGApiError
 from .const import (
@@ -43,6 +44,7 @@ async def _test_connection(hass: HomeAssistant, data: dict) -> None:
         verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
     )
     try:
+        await client.async_login()
         await client.async_get("/version")
     except (ClientError, asyncio.TimeoutError, PMGApiError) as err:
         raise PMGApiError(str(err)) from err
@@ -57,9 +59,19 @@ class PMGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            if "://" in user_input[CONF_HOST]:
+                url = URL(user_input[CONF_HOST])
+                if url.host:
+                    user_input[CONF_HOST] = url.host
+                if url.port:
+                    user_input[CONF_PORT] = url.port
+
             try:
                 await _test_connection(self.hass, user_input)
-            except PMGApiError:
+            except PMGApiError as err:
+                logging.getLogger(__name__).exception(
+                    "PMG config flow connection failed: %s", err
+                )
                 errors["base"] = "cannot_connect"
             else:
                 await self.async_set_unique_id(
@@ -74,6 +86,9 @@ class PMGConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_USERNAME: user_input[CONF_USERNAME],
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
                         CONF_REALM: user_input[CONF_REALM],
+                        CONF_VERIFY_SSL: user_input.get(
+                            CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL
+                        ),
                     },
                 )
 
@@ -109,7 +124,10 @@ class PMGOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(
                     CONF_VERIFY_SSL,
-                    default=self.entry.options.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+                    default=self.entry.options.get(
+                        CONF_VERIFY_SSL,
+                        self.entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+                    ),
                 ): bool,
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
