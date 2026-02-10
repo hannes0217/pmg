@@ -179,13 +179,6 @@ STATS_SENSORS: tuple[PMGStatsSensorDescription, ...] = (
     ),
 )
 
-UPDATE_SENSORS: tuple[SensorEntityDescription, ...] = (
-    SensorEntityDescription(
-        key="updates_available",
-        name="Updates Available",
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-)
 
 
 async def async_setup_entry(
@@ -201,9 +194,6 @@ async def async_setup_entry(
     for node_name in nodes:
     for description in NODE_SENSORS:
         entities.append(PMGNodeSensor(coordinator, entry, node_name, description))
-
-    for description in UPDATE_SENSORS:
-        entities.append(PMGNodeUpdateSensor(coordinator, entry, node_name, description))
 
     for description in STATS_SENSORS:
         entities.append(PMGMailStatsSensor(coordinator, entry, description))
@@ -291,44 +281,6 @@ class PMGMailStatsSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEnti
         return value
 
 
-class PMGNodeUpdateSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
-    """Node updates sensor."""
-
-    def __init__(
-        self,
-        coordinator: PMGDataUpdateCoordinator,
-        entry: ConfigEntry,
-        node_name: str,
-        description: SensorEntityDescription,
-    ) -> None:
-        super().__init__(coordinator)
-        self.entity_description = description
-        self._node_name = node_name
-        self._attr_unique_id = (
-            f"{entry.entry_id}_v2_{entry.data[CONF_HOST]}_{node_name}_updates"
-        )
-        self._attr_name = description.name
-        self._attr_suggested_object_id = (
-            f"pmg_{entry.data[CONF_HOST]}_{node_name}_updates_available"
-        )
-        self._attr_attribution = ATTRIBUTION
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"{entry.data[CONF_HOST]}-{node_name}")},
-            name=f"{entry.data[CONF_HOST]} ({node_name})",
-            manufacturer="Proxmox",
-            model="Proxmox Mail Gateway",
-        )
-
-    @property
-    def native_value(self):
-        updates = (self.coordinator.data or {}).get("updates", {}).get(self._node_name)
-        if updates is None:
-            return None
-        if isinstance(updates, dict):
-            updates = updates.get("data")
-        if isinstance(updates, list):
-            return len(updates)
-        return None
 
 
 class PMGVersionSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
