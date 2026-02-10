@@ -25,7 +25,7 @@ from .const import (
     DOMAIN,
 )
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -89,12 +89,23 @@ class PMGDataUpdateCoordinator(DataUpdateCoordinator[dict]):
 
             nodes_data = await self.client.async_get("/nodes") or []
             nodes = {}
+            updates: dict[str, Any] = {}
             for node in nodes_data:
                 node_name = node.get("node") or node.get("name")
                 if not node_name:
                     continue
                 status = await self.client.async_get(f"/nodes/{node_name}/status")
                 nodes[node_name] = status or {}
+                try:
+                    updates_data = await self.client.async_get(
+                        f"/nodes/{node_name}/apt/updates"
+                    )
+                except PMGApiError as err:
+                    if "404" in str(err) or "401" in str(err) or "403" in str(err):
+                        updates_data = None
+                    else:
+                        raise
+                updates[node_name] = updates_data
 
             stats_days = self.entry.options.get(CONF_STATS_DAYS, DEFAULT_STATS_DAYS)
             now = dt_util.utcnow()
@@ -110,6 +121,7 @@ class PMGDataUpdateCoordinator(DataUpdateCoordinator[dict]):
             return {
                 "version": version,
                 "nodes": nodes,
+                "updates": updates,
                 "mail_stats": mail_stats,
             }
         except PMGApiError as err:
