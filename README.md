@@ -14,6 +14,15 @@ Diese Integration stellt Sensoren für Proxmox Mail Gateway (PMG) bereit und unt
 2. Home Assistant vollständig neu starten.
 3. Integration hinzufügen: **Einstellungen → Geräte & Dienste → Integration hinzufügen → Proxmox Mail Gateway**
 
+## Installation via HACS (Benutzerdefiniertes Repository)
+Du kannst dieses GitHub‑Repository in HACS als **benutzerdefiniertes Repository** hinzufügen und dann die Integration installieren.
+
+Kurzablauf:
+1. HACS öffnen → **Integrationen** → Menü → **Benutzerdefinierte Repositories**
+2. Repository‑URL hinzufügen: `https://github.com/hannes0217/pmg`
+3. Kategorie: **Integration**
+4. Danach die Integration installieren und Home Assistant neu starten.
+
 ## Konfiguration (Config‑Flow)
 - **Host**: IP oder Hostname ohne `https://` (z. B. `192.168.1.229`)
 - **Port**: Standard `8006`
