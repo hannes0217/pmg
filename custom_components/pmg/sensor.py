@@ -216,6 +216,10 @@ class PMGNodeSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
         self.entity_description = description
         self._node_name = node_name
         self._attr_unique_id = f"{entry.entry_id}_{node_name}_{description.key}"
+        self._attr_name = f"PMG {entry.data[CONF_HOST]} {node_name} {description.name}"
+        self._attr_suggested_object_id = (
+            f"pmg_{entry.data[CONF_HOST]}_{node_name}_{description.key}"
+        )
         self._attr_attribution = ATTRIBUTION
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.data[CONF_HOST]}-{node_name}")},
@@ -253,6 +257,8 @@ class PMGMailStatsSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEnti
         self._key = description.key
         self._value_fn = description.value_fn
         self._attr_unique_id = f"{entry.entry_id}_mail_{description.key}"
+        self._attr_name = f"PMG {entry.data[CONF_HOST]} {description.name}"
+        self._attr_suggested_object_id = f"pmg_{entry.data[CONF_HOST]}_{description.key}"
         self._attr_attribution = ATTRIBUTION
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.data[CONF_HOST])},
