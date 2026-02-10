@@ -7,8 +7,9 @@
   "requirements": [],
   "codeowners": ["@hannes0217"],
   "iot_class": "local_polling",
-  "version": "1.0.4"
+  "version": "1.0.6"
 }
+
 
 
 
