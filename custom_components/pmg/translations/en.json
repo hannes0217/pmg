@@ -1,1 +1,33 @@
-
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Proxmox Mail Gateway",
+        "description": "Enter the connection details for your PMG server.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password",
+          "realm": "Realm",
+          "verify_ssl": "Verify SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "verify_ssl": "Verify SSL",
+          "scan_interval": "Scan interval (seconds)",
+          "stats_days": "Statistics range (days)"
+        }
+      }
+    }
+  }
+}

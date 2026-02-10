@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit Proxmox Mail Gateway verbinden",
+        "description": "Bitte die Verbindungsdaten des PMG-Servers eingeben.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "realm": "Realm",
+          "verify_ssl": "SSL prüfen"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "data": {
+          "verify_ssl": "SSL prüfen",
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "stats_days": "Statistik-Zeitraum (Tage)"
+        }
+      }
+    }
+  }
+}
