@@ -1,0 +1,11 @@
+{
+  "domain": "pmg",
+  "name": "Proxmox Mail Gateway",
+  "config_flow": true,
+  "documentation": "https://www.proxmox.com/en/proxmox-mail-gateway",
+  "issue_tracker": "https://github.com/home-assistant/core/issues",
+  "requirements": [],
+  "codeowners": [],
+  "iot_class": "local_polling",
+  "version": "0.1.0"
+}
