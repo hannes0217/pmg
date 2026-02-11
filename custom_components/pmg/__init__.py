@@ -1,4 +1,4 @@
-﻿"""Proxmox Mail Gateway integration."""
+"""Proxmox Mail Gateway integration."""
 
 from __future__ import annotations
 
@@ -124,11 +124,20 @@ class PMGDataUpdateCoordinator(DataUpdateCoordinator[dict]):
                 params={"starttime": int(start.timestamp()), "endtime": int(end.timestamp())},
             )
 
+            quarantine_params = {
+                "starttime": int(start.timestamp()),
+                "endtime": int(end.timestamp()),
+            }
+            spam_status = await self.client.async_get("/quarantine/spamstatus")
+            virus_status = await self.client.async_get("/quarantine/virusstatus")
+
             return {
                 "version": version,
                 "nodes": nodes,
                 "updates": updates,
                 "mail_stats": mail_stats,
+                "spam_status": spam_status,
+                "virus_status": virus_status,
             }
         except PMGApiError as err:
             raise UpdateFailed(str(err)) from err
