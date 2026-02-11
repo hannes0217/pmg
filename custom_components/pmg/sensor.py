@@ -1,4 +1,4 @@
-﻿"""Sensors for Proxmox Mail Gateway."""
+"""Sensors for Proxmox Mail Gateway."""
 
 from __future__ import annotations
 
@@ -187,6 +187,33 @@ UPDATE_SENSORS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
+QUARANTINE_SENSORS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="spam_quarantine_count",
+        name="Spam Quarantine Count",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="virus_quarantine_count",
+        name="Virus Quarantine Count",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="virus_quarantine_avg_bytes",
+        name="Virus Quarantine Avg Size",
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="virus_quarantine_mbytes",
+        name="Virus Quarantine Size",
+        native_unit_of_measurement=UnitOfInformation.BYTES,
+        device_class=SensorDeviceClass.DATA_SIZE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -208,6 +235,9 @@ async def async_setup_entry(
     for description in UPDATE_SENSORS:
         for node_name in nodes:
             entities.append(PMGNodeUpdateSensor(coordinator, entry, node_name, description))
+
+    for description in QUARANTINE_SENSORS:
+        entities.append(PMGQuarantineSensor(coordinator, entry, description))
 
     entities.append(PMGVersionSensor(coordinator, entry))
 
@@ -313,6 +343,64 @@ class PMGVersionSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity
     def native_value(self):
         version = (self.coordinator.data or {}).get("version") or {}
         return version.get("version") or version.get("release")
+
+
+class PMGQuarantineSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
+    """Quarantine sensors."""
+
+    def __init__(
+        self,
+        coordinator: PMGDataUpdateCoordinator,
+        entry: ConfigEntry,
+        description: SensorEntityDescription,
+    ) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._key = description.key
+        self._attr_unique_id = (
+            f"{entry.entry_id}_v2_{entry.data[CONF_HOST]}_quarantine_{description.key}"
+        )
+        self._attr_name = description.name
+        self._attr_suggested_object_id = (
+            f"pmg_{entry.data[CONF_HOST]}_{description.key}"
+        )
+        self._attr_attribution = ATTRIBUTION
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.data[CONF_HOST])},
+            name=entry.data[CONF_HOST],
+            manufacturer="Proxmox",
+            model="Proxmox Mail Gateway",
+        )
+
+    @property
+    def native_value(self):
+        if self._key == "spam_quarantine_count":
+            data = (self.coordinator.data or {}).get("spam_status") or {}
+            if isinstance(data, dict):
+                data = data.get("data") or data
+            return data.get("count") if isinstance(data, dict) else None
+
+        if self._key == "virus_quarantine_count":
+            data = (self.coordinator.data or {}).get("virus_status") or {}
+            if isinstance(data, dict):
+                data = data.get("data") or data
+            return data.get("count") if isinstance(data, dict) else None
+
+        if self._key == "virus_quarantine_avg_bytes":
+            data = (self.coordinator.data or {}).get("virus_status") or {}
+            if isinstance(data, dict):
+                data = data.get("data") or data
+            return data.get("avgbytes") if isinstance(data, dict) else None
+
+        if self._key == "virus_quarantine_mbytes":
+            data = (self.coordinator.data or {}).get("virus_status") or {}
+            if isinstance(data, dict):
+                data = data.get("data") or data
+            if isinstance(data, dict) and data.get("mbytes") is not None:
+                return round(float(data.get("mbytes")) * 1024 * 1024)
+            return None
+
+        return None
 
 
 class PMGNodeUpdateSensor(CoordinatorEntity[PMGDataUpdateCoordinator], SensorEntity):
