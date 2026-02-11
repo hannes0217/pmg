@@ -1,4 +1,4 @@
-﻿# Proxmox Mail Gateway (PMG) – Home Assistant Integration
+# Proxmox Mail Gateway (PMG) – Home Assistant Integration
 
 Diese Integration stellt Sensoren für Proxmox Mail Gateway (PMG) bereit und unterstützt das Einrichten über den Config‑Flow. Sie ist für mehrere Geräte/Hosts ausgelegt und funktioniert mit der PMG‑API über `pmgproxy` (Port 8006).
 
@@ -9,6 +9,7 @@ Diese Integration stellt Sensoren für Proxmox Mail Gateway (PMG) bereit und unt
 - Mail‑Statistiken (z. B. Spam, Junk, Bytes, Pregreet, RBL, SPF)
 - System‑/Node‑Status (CPU, Load, RAM, Disk, Uptime)
 - Update‑Sensor pro Node (Anzahl verfügbarer Updates via `/nodes/{node}/apt/update`)
+- Quarantäne‑Sensoren (Spam‑ und Virus‑Status)
 
 ## Installation (manuell)
 1. Ordner `custom_components/pmg` in dein Home‑Assistant‑Config‑Verzeichnis kopieren.
@@ -58,10 +59,17 @@ Kurzablauf:
 ### Updates
 - Updates Available (Anzahl verfügbarer Updates pro Node)
 
+### Quarantäne
+- Spam Quarantine Count (Anzahl der Spam‑Mails in Quarantäne via `/quarantine/spamstatus`)
+- Virus Quarantine Count (Anzahl der Virus‑Mails in Quarantäne via `/quarantine/virusstatus`)
+- Virus Quarantine Avg Size (durchschnittliche Größe in Bytes)
+- Virus Quarantine Size (Gesamtgröße, aus MByte berechnet)
+
 ## Hinweise
 - Die PMG‑Web‑UI zeigt nicht alle Statistikfelder an. Die Integration nutzt die Rohdaten aus `/statistics/mail`.
 - Bei älteren PMG‑Versionen können einzelne Felder fehlen; Sensoren bleiben dann „Unbekannt“.
 - Update‑Check nutzt `/nodes/{node}/apt/update`.
+- Quarantäne‑Status nutzt `/quarantine/spamstatus` und `/quarantine/virusstatus`.
 
 ## Support
 Bitte Issues im GitHub‑Repository erstellen.
