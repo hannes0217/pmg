@@ -1,0 +1,19 @@
+name: HACS Validation
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *" # Läuft einmal täglich, um Kompatibilität zu prüfen
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout usage
+        uses: actions/checkout@v4
+
+      - name: HACS Action
+        uses: hacs/action@main
+        with:
+          category: integration # Ändere dies zu 'plugin', 'theme' oder 'python_script', falls nötig
